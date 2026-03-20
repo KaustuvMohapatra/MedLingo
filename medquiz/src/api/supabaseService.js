@@ -9,15 +9,15 @@ const supabase = createClient(
  * CONFIRMED DB VALUES (from your actual data):
  *
  * topic values:  MEDMCQA, PATH_VQA, VQA_RAD, USMLE Step 1,
- *                MEDQA_USMLE, Flashcards, HEADQA, BioASQ
+ * MEDQA_USMLE, Flashcards, HEADQA, BioASQ
  *
  * tags values:   ["medmcqa"]
- *                ["path_vqa", "image_based", "image"]
- *                ["vqa_rad",  "image_based", "image"]
- *                ["usmle", "step1", "medqa"]
- *                ["medqa_usmle"]
- *                ["flashcard", "fill-in-the-blank"]
- *                ["headqa"]
+ * ["path_vqa", "image_based", "image"]
+ * ["vqa_rad",  "image_based", "image"]
+ * ["usmle", "step1", "medqa"]
+ * ["medqa_usmle"]
+ * ["flashcard", "fill-in-the-blank"]
+ * ["headqa"]
  *
  * image questions = topic IN ('PATH_VQA', 'VQA_RAD')
  * flashcards      = topic = 'Flashcards'
@@ -249,6 +249,8 @@ export async function getLessonQuestions(chapterObj, sm2Store = {}) {
 
     const tags       = Array.isArray(q.tags) ? q.tags : [];
     const isImageRow = ["PATH_VQA","VQA_RAD"].includes(q.topic) || tags.includes("image_based");
+    
+    // Note: If you previously implemented the image URL fix, ensure q.image parses correctly here.
     const hasImage   = q.image && q.image !== "NULL" && q.image !== "" && q.image.startsWith("http");
 
     return {
@@ -261,12 +263,39 @@ export async function getLessonQuestions(chapterObj, sm2Store = {}) {
     };
   });
 
-  // SM-2 priority sort
-  const today = new Date(); today.setHours(0,0,0,0);
-  const isDue = id => { const c = sm2Store[id]; return c?.nextReview && new Date(c.nextReview) <= today; };
-  const due   = normalised.filter(q => isDue(q.id));
-  const fresh = normalised.filter(q => !isDue(q.id));
-  return [...due, ...fresh].slice(0, 10);
+  // ── 🎲 FISHER-YATES SHUFFLE ALGORITHM ──
+  const shuffleArray = (array) => {
+    let shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
+
+  // Check which mode the user selected
+  const isPractice = chapterObj.gameMode === "practice";
+
+  if (isPractice) {
+    // 🎯 PRACTICE MODE: Infinite Replayability
+    // Ignores mastery data and picks a completely random 10 questions from the pool
+    return shuffleArray(normalised).slice(0, 10);
+    
+  } else {
+    // ⚔️ COMPETITIVE MODE: Strict Mastery Path
+    // Uses SM-2 Spaced Repetition to find the exact cards the user needs to learn
+    const today = new Date(); today.setHours(0,0,0,0);
+    const isDue = id => { const c = sm2Store[id]; return c?.nextReview && new Date(c.nextReview) <= today; };
+    
+    const due   = normalised.filter(q => isDue(q.id));
+    const fresh = normalised.filter(q => !isDue(q.id));
+    
+    // 1. Grab the 10 most important questions for their progress
+    const top10MasteryQuestions = [...due, ...fresh].slice(0, 10);
+    
+    // 2. Shuffle ONLY those 10 questions so they can't memorize the sequence order
+    return shuffleArray(top10MasteryQuestions);
+  }
 }
 
 // ── Legacy compat ────────────────────────────────────────────
