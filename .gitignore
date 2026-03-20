@@ -1,0 +1,35 @@
+# --- Frontend (React/Vite) ---
+node_modules/
+dist/
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# --- Data Pipelines & Local Datasets ---
+# Ignore the actual data, but keep the scripts
+*.parquet
+*.csv
+*.json
+!syllabus.js
+!package.json
+
+# Ignore local image downloads from VQA-RAD/PathVQA
+**/images/
+**/data/raw/
+**/datasets/
+
+# --- Python Environment ---
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env
+
+# --- OS & IDE ---
+.DS_Store
+.vscode/
+.idea/

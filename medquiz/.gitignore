@@ -1,0 +1,22 @@
+# --- Frontend Specifics ---
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# --- Secret Keys (CRITICAL) ---
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# --- Data & Syllabus ---
+# We keep syllabus.js because the frontend needs it to build the map
+!src/data/syllabus.js
+
+# --- IDE & OS ---
+.vscode/
+.idea
+.DS_Store
+*.sw?
