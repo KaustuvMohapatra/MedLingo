@@ -247,18 +247,31 @@ export async function getLessonQuestions(chapterObj, sm2Store = {}) {
     if      (typeof q.answer === "number")                               correct_index = q.answer;
     else if (typeof q.answer === "string" && !isNaN(parseInt(q.answer))) correct_index = parseInt(q.answer, 10);
 
+    let finalImage = null;
+    const invalidStrings = ["NULL", "null", "NaN", "nan", "None", "none", ""];
+    
+    // Convert q.image to string to prevent errors, then trim and check
+    const imgStr = q.image ? String(q.image).trim() : "";
+    
+    if (imgStr && !invalidStrings.includes(imgStr)) {
+      if (imgStr.startsWith("http")) {
+        finalImage = imgStr; 
+      } else {
+        const cleanPath = imgStr.startsWith('/') ? imgStr.substring(1) : imgStr;
+        // Dynamically grab your Supabase URL from env variables instead of hardcoding
+        const SB_URL = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/images/`;
+        finalImage = `${SB_URL}${cleanPath}`;
+      }
+    }
+
     const tags       = Array.isArray(q.tags) ? q.tags : [];
     const isImageRow = ["PATH_VQA","VQA_RAD"].includes(q.topic) || tags.includes("image_based");
     
-    // Note: If you previously implemented the image URL fix, ensure q.image parses correctly here.
-    const hasImage   = q.image && q.image !== "NULL" && q.image !== "" && q.image.startsWith("http");
-
     return {
       ...q,
       options:       Array.isArray(q.options) ? q.options : [],
       correct_index,
-      image:         hasImage ? q.image : null,
-      // Override type for image rows so QuizScreen renders image UI
+      image:         finalImage, // Now correctly null for USMLE text questions
       type:          isImageRow ? "image_mcq" : (q.type || "mcq"),
     };
   });
